@@ -1,0 +1,13 @@
+{
+  "name": "whatsapp-bot-buy",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "@adiwajshing/baileys": "latest",
+    "pino": "latest",
+    "axios": "latest",
+    "fs-extra": "latest",
+    "qrcode-terminal": "latest"
+  }
+}
