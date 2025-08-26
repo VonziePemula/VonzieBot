@@ -1,77 +1,89 @@
 // case.js
-const { proto } = require("@whiskeysockets/baileys")
+const fs = require("fs");
+const path = require("path");
+const { proto } = require("@whiskeysockets/baileys");
 
-/**
- * Handler command bot
- * @param {import("@whiskeysockets/baileys").WASocket} sock
- * @param {import("@whiskeysockets/baileys").proto.IWebMessageInfo} m
- */
-async function handler(sock, m) {
+module.exports = async function caseHandler(sock, m, chatUpdate, store) {
     try {
-        const body = m.message?.conversation 
-                  || m.message?.extendedTextMessage?.text 
-                  || m.message?.imageMessage?.caption 
-                  || ""
+        const from = m.key.remoteJid;
+        const isGroup = from.endsWith("@g.us");
+        const sender = isGroup ? m.key.participant : m.key.remoteJid;
+        const type = Object.keys(m.message)[0];
+        const body = 
+            (type === "conversation" && m.message.conversation) ? m.message.conversation : 
+            (type === "imageMessage" && m.message.imageMessage.caption) ? m.message.imageMessage.caption : 
+            (type === "videoMessage" && m.message.videoMessage.caption) ? m.message.videoMessage.caption : 
+            (type === "extendedTextMessage" && m.message.extendedTextMessage.text) ? m.message.extendedTextMessage.text : 
+            (type === "buttonsResponseMessage" && m.message.buttonsResponseMessage.selectedButtonId) ? m.message.buttonsResponseMessage.selectedButtonId : 
+            (type === "listResponseMessage" && m.message.listResponseMessage.singleSelectReply.selectedRowId) ? m.message.listResponseMessage.singleSelectReply.selectedRowId : 
+            "";
 
-        const sender = m.key.participant || m.key.remoteJid
-        const isGroup = sender.endsWith("@g.us")
-        const command = body.startsWith("!") ? body.slice(1).split(" ")[0].toLowerCase() : null
-        const args = body.split(" ").slice(1)
-        
-        // Kalau bukan command, keluar
-        if (!command) return
+        const command = body.startsWith("!") ? body.slice(1).trim().split(" ")[0].toLowerCase() : "";
+        const args = body.trim().split(/ +/).slice(1);
 
-        console.log(`[CMD] ${command} from ${sender}`)
+        // Menu utama (pakai thumbnail foto atau sticker pack)
+        if (command === "menu") {
+            let menuText = `
+╭───⟨ *🤖 WHATSAPP BOT MENU* ⟩───╮
+│ 🗂️  *Main Commands*
+│ • !ping
+│ • !sticker
+│ • !owner
+│ • !help
+│
+│ 🎉  *Fun Commands*
+│ • !joke
+│ • !quote
+│
+│ 🛠️  *Tools*
+│ • !toimg (reply sticker)
+│ • !tomp3 (reply video)
+│
+│ 🔑  *System*
+│ • !pair
+│ • !status
+╰───────────────────────────────╯
+`;
 
-        switch (command) {
-            case "menu":
-                await sock.sendMessage(sender, {
-                    text: `👋 Hai, ini menu bot!
-                    
-*✨ Menu Utama*
-1. !sticker (balas gambar)
-2. !ping
-3. !owner
-4. !about
-5. !help`,
-                }, { quoted: m })
-                break
+            let thumbPath = path.join(__dirname, "thumb.jpg"); // foto thumbnail
+            let buffer = fs.readFileSync(thumbPath);
 
-            case "ping":
-                await sock.sendMessage(sender, { text: "🏓 Pong!" }, { quoted: m })
-                break
-
-            case "sticker":
-            case "s":
-                if (m.message?.imageMessage) {
-                    const buffer = await sock.downloadMediaMessage(m)
-                    await sock.sendMessage(sender, { 
-                        sticker: buffer 
-                    }, { quoted: m })
-                } else {
-                    await sock.sendMessage(sender, { text: "⚠️ Reply gambar dengan `!sticker`" }, { quoted: m })
-                }
-                break
-
-            case "owner":
-                await sock.sendMessage(sender, { text: "👑 Owner: wa.me/628xxxxxxx" }, { quoted: m })
-                break
-
-            case "about":
-                await sock.sendMessage(sender, { text: "🤖 Bot WhatsApp Base by Vonzie\nMenggunakan Baileys + Pairing Code" }, { quoted: m })
-                break
-
-            case "help":
-                await sock.sendMessage(sender, { text: "📖 Ketik !menu untuk melihat daftar fitur" }, { quoted: m })
-                break
-
-            default:
-                await sock.sendMessage(sender, { text: `❓ Command *${command}* tidak dikenal.` }, { quoted: m })
-                break
+            await sock.sendMessage(from, {
+                image: buffer,
+                caption: menuText,
+                footer: "Vonzie Bot WhatsApp • Pairing System",
+                buttons: [
+                    { buttonId: "!ping", buttonText: { displayText: "📡 Ping" }, type: 1 },
+                    { buttonId: "!sticker", buttonText: { displayText: "✨ Sticker" }, type: 1 },
+                    { buttonId: "!owner", buttonText: { displayText: "👑 Owner" }, type: 1 }
+                ],
+                headerType: 4
+            }, { quoted: m });
         }
-    } catch (e) {
-        console.error("Error in case.js:", e)
-    }
-}
 
-module.exports = handler
+        // Contoh command ping
+        if (command === "ping") {
+            await sock.sendMessage(from, { text: "Pong! 🏓" }, { quoted: m });
+        }
+
+        // Convert ke sticker
+        if (command === "sticker") {
+            if ((type === "imageMessage") || (m.message?.extendedTextMessage?.contextInfo?.quotedMessage?.imageMessage)) {
+                let media = await sock.downloadMediaMessage(
+                    m.message.imageMessage ? m : { message: m.message.extendedTextMessage.contextInfo.quotedMessage }
+                );
+                await sock.sendMessage(from, { sticker: media }, { quoted: m });
+            } else {
+                await sock.sendMessage(from, { text: "Reply gambar dengan *!sticker* untuk buat sticker" }, { quoted: m });
+            }
+        }
+
+        // Owner
+        if (command === "owner") {
+            await sock.sendMessage(from, { text: "👑 Owner: wa.me/628xxxxxxxxxx" }, { quoted: m });
+        }
+
+    } catch (err) {
+        console.error("Error in case.js:", err);
+    }
+};
