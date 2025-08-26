@@ -1,35 +1,68 @@
-const { default: makeWASocket, useMultiFileAuthState, Browsers } = require("@adiwajshing/baileys")
-const pino = require("pino")
-const fs = require("fs-extra")
-const { handleCommand } = require("./case")
+const {
+    default: makeWASocket,
+    useMultiFileAuthState,
+    makeCacheableSignalKeyStore,
+    fetchLatestBaileysVersion
+} = require("@whiskeysockets/baileys")
+const P = require("pino")
+const fs = require("fs")
+const { exec } = require("child_process")
+const chalk = require("chalk")
+const path = require("path")
+
+// import case.js
+const { handleCase } = require("./case")
 
 async function startBot() {
-  const { state, saveCreds } = await useMultiFileAuthState("./session")
+    const { state, saveCreds } = await useMultiFileAuthState("session")
+    const { version } = await fetchLatestBaileysVersion()
 
-  const sock = makeWASocket({
-    auth: state,
-    logger: pino({ level: "silent" }),
-    browser: Browsers.macOS("Vonzie Bot")
-  })
+    const sock = makeWASocket({
+        version,
+        logger: P({ level: "silent" }),
+        printQRInTerminal: true,
+        auth: {
+            creds: state.creds,
+            keys: makeCacheableSignalKeyStore(state.keys, P().child({ level: "fatal" }))
+        },
+        browser: ["VonzieBot", "Chrome", "5.0"]
+    })
 
-  sock.ev.on("creds.update", saveCreds)
+    sock.ev.on("creds.update", saveCreds)
 
-  sock.ev.on("connection.update", ({ connection, lastDisconnect }) => {
-    if (connection === "close") startBot()
-    else if (connection === "open") console.log("✅ Bot connected")
-  })
+    // Pairing code system
+    if (!sock.authState.creds.registered) {
+        const phoneNumber = process.env.PHONE_NUMBER || "" // bisa edit langsung atau pakai env
+        if (!phoneNumber) {
+            console.log(chalk.red("❌ Masukkan nomor WA di PHONE_NUMBER env / variable!"))
+            process.exit(0)
+        }
+        const code = await sock.requestPairingCode(phoneNumber)
+        console.log(chalk.green(`🔗 Pairing Code untuk ${phoneNumber}: ${code}`))
+    }
 
-  sock.ev.on("messages.upsert", async ({ messages }) => {
-    const m = messages[0]
-    if (!m.message) return
-    const from = m.key.remoteJid
-    const isGroup = from.endsWith("@g.us")
-    const type = Object.keys(m.message)[0]
-    const text = type === "conversation" ? m.message.conversation : (m.message.extendedTextMessage?.text || "")
-    if (!text) return
+    // Handler pesan masuk
+    sock.ev.on("messages.upsert", async ({ messages, type }) => {
+        if (type !== "notify") return
+        const m = messages[0]
+        if (!m.message) return
+        try {
+            await handleCase(sock, m)
+        } catch (err) {
+            console.error("❌ Error di handler:", err)
+        }
+    })
 
-    await handleCommand(sock, m, text, from, isGroup)
-  })
+    // Notif connect/disconnect
+    sock.ev.on("connection.update", (update) => {
+        const { connection, lastDisconnect } = update
+        if (connection === "close") {
+            console.log(chalk.red("❌ Koneksi terputus, mencoba ulang..."))
+            startBot()
+        } else if (connection === "open") {
+            console.log(chalk.green("✅ Bot berhasil terhubung!"))
+        }
+    })
 }
 
 startBot()
