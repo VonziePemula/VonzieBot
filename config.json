@@ -1,0 +1,7 @@
+{
+  "owner": "62857734669112@s.whatsapp.net",
+  "tripayApiKey": "API_KEY_TRIPAY_KAMU",
+  "tripayMerchantCode": "T1234",
+  "tripayPrivateKey": "PRIVATE_KEY_TRIPAY",
+  "prefix": "."
+}
