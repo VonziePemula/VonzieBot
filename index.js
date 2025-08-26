@@ -1,15 +1,3 @@
-/*
-
-  -! Credits By RuzxxOffc
-  https://wa.me/6288980698613
-
-*/
-
-console.clear();
-console.log('starting...');
-require('./all/settings/settings');
-process.on("uncaughtException", console.error); 
-
 const {
 default: makeWASocket,
 makeCacheableSignalKeyStore,
