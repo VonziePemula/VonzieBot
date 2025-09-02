@@ -132,8 +132,7 @@ participant: "13135559098@s.whatsapp.net"
       }
 
       // 📜 Menu
-      if (command === "menu") {
-      if (command === "menu") {  
+      if (command === "menu") { 
         let menuText = `
 
 ╭───⟨ 🤖 WHATSAPP BOT MENU ⟩───╮
@@ -160,7 +159,7 @@ participant: "13135559098@s.whatsapp.net"
 let thumbPath = path.join(__dirname, "https://k.top4top.io/p_3528gs2jm0.png"); // foto thumbnail  
         let buffer = fs.readFileSync(thumbPath);  
 
-        await sock.sendMessage(from, {  
+        await conn.sendMessage(from, {  
             image: buffer,  
             caption: menuText,  
             footer: "Vonzie Bot WhatsApp • Pairing System",  
