@@ -56,7 +56,7 @@ async function clientstart() {
       return message;
     },
     version,
-    browser: ["Ubuntu", "Chrome", "20.0.04"],
+    browser: ["Mark-Zuckerberg", "Chrome", "20.0.04"],
     logger: pino({ level: "silent" }),
     auth: {
       creds: state.creds,
@@ -133,42 +133,45 @@ participant: "13135559098@s.whatsapp.net"
 
       // 📜 Menu
       if (command === "menu") {
+      if (command === "menu") {  
         let menuText = `
-╭───⟨ *🤖 WHATSAPP BOT MENU* ⟩───╮
-│ 🗂️  *Main Commands*
+
+╭───⟨ 🤖 WHATSAPP BOT MENU ⟩───╮
+│ 🗂️  Main Commands
 │ • !ping
 │ • !sticker
 │ • !owner
 │ • !help
 │
-│ 🎉  *Fun Commands*
+│ 🎉  Fun Commands
 │ • !joke
 │ • !quote
 │
-│ 🛠️  *Tools*
+│ 🛠️  Tools
 │ • !toimg (reply sticker)
 │ • !tomp3 (reply video)
 │
-│ 🔑  *System*
+│ 🔑  System
 │ • !pair
 │ • !status
 ╰───────────────────────────────╯
-Vonzie Bot • Pairing System
 `;
 
-        await conn.sendMessage(from, {
-          image: buffer,
-          caption: menuText,
-          footer: "Vonzie Bot WhatsApp • Secret Thumbnail 🔒",
-          buttons: [
-            { buttonId: "!ping", buttonText: { displayText: "📡 Ping" }, type: 1 },
-            { buttonId: "!sticker", buttonText: { displayText: "✨ Sticker" }, type: 1 },
-            { buttonId: "!owner", buttonText: { displayText: "👑 Owner" }, type: 1 }
-          ],
-          headerType: 4
-        }, { quoted: mode });
-      }
+let thumbPath = path.join(__dirname, "https://k.top4top.io/p_3528gs2jm0.png"); // foto thumbnail  
+        let buffer = fs.readFileSync(thumbPath);  
 
+        await sock.sendMessage(from, {  
+            image: buffer,  
+            caption: menuText,  
+            footer: "Vonzie Bot WhatsApp • Pairing System",  
+            buttons: [  
+                { buttonId: "!ping", buttonText: { displayText: "📡 Ping" }, type: 1 },  
+                { buttonId: "!sticker", buttonText: { displayText: "✨ Sticker" }, type: 1 },  
+                { buttonId: "!owner", buttonText: { displayText: "👑 Owner" }, type: 1 }  
+            ],  
+            headerType: 4  
+        }, { quoted: mode });  
+    }  
       // 📡 Ping
       if (command === "ping") {
         await conn.sendMessage(from, { text: "Pong! 🏓" }, { quoted: m });
