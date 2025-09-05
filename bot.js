@@ -407,10 +407,47 @@ case 'systemvcx': case 'vonziexplague': {
    }
 }
 
-    } catch (err) {
-      console.error("❌ Error in case handler:", err);
-    }
-  });
+    break
 }
+
+// ========== [ 📂 BATAS CASE 📂 ] ========= //
+default:
+if (budy.startsWith('>')) {
+if (!isOwner) return;
+try {
+let evaled = await eval(budy.slice(2));
+if (typeof evaled !== 'string') evaled = require('util').inspect(evaled);
+await m.ryuReply(evaled);
+} catch (err) {
+m.ryuReply(String(err));
+}
+}
+
+if (budy.startsWith('<')) {
+if (!isOwner) return
+let kode = budy.trim().split(/ +/)[0]
+let teks
+try {
+teks = await eval(`(async () => { ${kode == ">>" ? "return" : ""} ${q}})()`)
+} catch (e) {
+teks = e
+} finally {
+await m.ryuReply(require('util').format(teks))
+}
+}
+
+}
+} catch (err) {
+console.log(require("util").format(err));
+}
+};
+
+let file = require.resolve(__filename);
+require('fs').watchFile(file, () => {
+require('fs').unwatchFile(file);
+console.log('\x1b[0;32m' + __filename + ' \x1b[1;32mupdated!\x1b[0m');
+delete require.cache[file];
+require(file);
+});
 
 clientstart();
